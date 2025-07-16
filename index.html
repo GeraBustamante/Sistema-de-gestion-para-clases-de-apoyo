@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión - Clases de Apoyo</title>
+    <link rel="stylesheet" href="estilos-new.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-graduation-cap"></i> Sistema de Gestión - Clases de Apoyo</h1>
+                
+                <!-- Selector de Etapas -->
+                <div class="etapa-selector">
+                    <label for="selectorEtapa" class="etapa-label">
+                        <i class="fas fa-calendar-alt"></i> Etapa:
+                    </label>
+                    <select id="selectorEtapa" class="etapa-select" onchange="cambiarEtapa()">
+                        <option value="">Cargando etapas...</option>
+                    </select>
+                    <div class="etapa-info" id="etapaInfo">
+                        <span class="etapa-nivel" id="etapaNivel">Nivel Secundario</span>
+                        <span class="etapa-periodo" id="etapaPeriodo">Junio - Julio 2025</span>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <button id="btnActualizar" class="btn-refresh" onclick="loadDataWithButton()">
+                        <i class="fas fa-sync-alt"></i> <span id="btnActualizarTexto">Actualizar Datos</span>
+                    </button>
+                    <button class="btn-config" onclick="showConfigModal()">
+                        <i class="fas fa-cog"></i> Configurar Google Sheets
+                    </button>
+                    <input type="text" id="globalSearch" placeholder="Buscar en todo el sistema..." class="global-search">
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="showSection('dashboard')">
+                <i class="fas fa-chart-dashboard"></i> Dashboard
+            </button>
+            <button class="tab-btn" onclick="showSection('alumnos')">
+                <i class="fas fa-users"></i> Alumnos
+            </button>
+            <button class="tab-btn" onclick="showSection('docentes')">
+                <i class="fas fa-chalkboard-teacher"></i> Docentes
+            </button>
+            <button class="tab-btn" onclick="showSection('grupos')">
+                <i class="fas fa-layer-group"></i> Grupos
+            </button>
+            <button class="tab-btn" onclick="showSection('sedes')">
+                <i class="fas fa-building"></i> Sedes
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalAlumnos">0</h3>
+                            <p>Total Alumnos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalDocentes">0</h3>
+                            <p>Total Docentes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalGrupos">0</h3>
+                            <p>Total Grupos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalSedes">0</h3>
+                            <p>Total Sedes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>Distribución por Sede</h3>
+                        <canvas id="sedesChart"></canvas>
+                    </div>
+                    <div class="chart-card grupos-carga-card">
+                        <h3><i class="fas fa-chart-bar"></i> Carga de Grupos por Sede</h3>
+                        <div class="grupos-carga-container" id="gruposCargaContainer">
+                            <div class="loading-message">Cargando datos de grupos...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alumnos Section -->
+            <section id="alumnos" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Gestión de Alumnos</h2>
+                    <div class="section-actions">
+                        <input type="text" id="searchAlumnos" placeholder="Buscar alumno..." class="search-input">
+                        <select id="filterSede" class="filter-select">
+                            <option value="">Todas las sedes</option>
+                        </select>
+                        <select id="filterNivel" class="filter-select">
+                            <option value="">Todos los niveles</option>
+                        </select>
+                        <select id="filterEstado" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            <option value="Activo" selected>Solo Activos</option>
+                        </select>
+                        
+                        <!-- Botón de Resetear -->
+                        <button class="btn-reset" onclick="resetAllFilters()" title="Limpiar todos los filtros y búsquedas">
+                            <i class="fas fa-undo"></i> Resetear
+                        </button>
+                        
+                        <!-- Contador de registros -->
+                        <div class="records-counter" id="alumnosCounter">
+                            <span class="counter-text">Mostrando: <strong id="alumnosCount">0</strong> alumnos</span>
+                        </div>
+                        
+                        <!-- Botones de Ordenamiento -->
+                        <div class="sort-controls">
+                            <label class="sort-label">Ordenar por:</label>
+                            <div class="sort-buttons">
+                                <button class="sort-btn active" onclick="sortAlumnos('original')" title="Orden de inscripción">
+                                    <i class="fas fa-list-ol"></i> Inscripción
+                                </button>
+                                <button class="sort-btn" onclick="sortAlumnos('alfabetico')" title="Orden alfabético">
+                                    <i class="fas fa-sort-alpha-down"></i> A-Z
+                                </button>
+                                <button class="sort-btn" onclick="sortAlumnos('sede')" title="Por sede (alfabético)">
+                                    <i class="fas fa-building"></i> Sede
+                                </button>
+                                <button class="sort-btn" onclick="sortAlumnos('grupo')" title="Por grupo/docente">
+                                    <i class="fas fa-users"></i> Grupo
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="view-toggle">
+                            <button id="cardView" class="view-btn active" onclick="switchView('cards')">
+                                <i class="fas fa-th-large"></i> Cards
+                            </button>
+                            <button id="tableView" class="view-btn" onclick="switchView('table')">
+                                <i class="fas fa-table"></i> Tabla
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vista de Cards (por defecto) -->
+                <div id="alumnosCards" class="alumnos-cards-container">
+                    <!-- Las cards se cargarán dinámicamente -->
+                </div>
+                
+                <!-- Vista de Tabla (oculta por defecto) -->
+                <div id="alumnosTableContainer" class="table-container" style="display: none;">
+                    <table id="alumnosTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>DNI</th>
+                                <th>Nombre</th>
+                                <th>Edad</th>
+                                <th>Tutor</th>
+                                <th>Nivel</th>
+                                <th>Sede</th>
+                                <th>Grupo</th>
+                                <th>Asistencia</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Docentes Section -->
+            <section id="docentes" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chalkboard-teacher"></i> Gestión de Docentes</h2>
+                    <div class="section-actions">
+                        <input type="text" id="searchDocentes" placeholder="Buscar docente..." class="search-input">
+                        <select id="filterMaterias" class="filter-select">
+                            <option value="">Todas las materias</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="docentesTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>DNI</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Sede</th>
+                                <th>Materias</th>
+                                <th>Grupos Asignados</th>
+                                <th>Total Alumnos</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Grupos Section -->
+            <section id="grupos" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-layer-group"></i> Gestión de Grupos</h2>
+                    <div class="section-actions">
+                        <input type="text" id="searchGrupos" placeholder="Buscar grupo..." class="search-input">
+                        <select id="filterTurno" class="filter-select">
+                            <option value="">Todos los turnos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="groups-grid" id="groupsGrid">
+                    <!-- Los grupos se cargarán dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Sedes Section -->
+            <section id="sedes" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-building"></i> Gestión de Sedes</h2>
+                    <div class="section-actions">
+                        <input type="text" id="searchSedes" placeholder="Buscar sede..." class="search-input" 
+                               oninput="filterSedes()">
+                        <select id="filterDepartamento" class="filter-select" onchange="filterSedes()">
+                            <option value="">Todos los departamentos</option>
+                        </select>
+                        <select id="filterNivelSede" class="filter-select" onchange="filterSedes()">
+                            <option value="">Todos los niveles</option>
+                        </select>
+                        <select id="filterTurnoSede" class="filter-select" onchange="filterSedes()">
+                            <option value="">Todos los turnos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sedes-grid" id="sedesGrid">
+                    <!-- Las sedes se cargarán dinámicamente -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal para detalles -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+
+        <!-- Configuración de Google Sheets -->
+        <div id="configModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeConfigModal()">&times;</span>
+                <h3><i class="fas fa-cog"></i> Configuración de Google Sheets</h3>
+                <div class="config-form">
+                    <div class="config-instructions">
+                        <h4>📝 Instrucciones:</h4>
+                        <ol>
+                            <li>Abre tu Google Sheets</li>
+                            <li>Haz clic en <strong>"Compartir"</strong> (botón azul)</li>
+                            <li>Cambia "Restringido" por <strong>"Cualquier persona con el enlace"</strong></li>
+                            <li>Asegúrate que esté en <strong>"Lector"</strong></li>
+                            <li>Copia la URL completa y pégala abajo</li>
+                        </ol>
+                    </div>
+                    <label for="sheetsUrl">URL de Google Sheets:</label>
+                    <input type="text" id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/tu-id-de-hoja/edit" class="config-input">
+                    <div class="config-buttons">
+                        <button onclick="saveConfig()" class="btn-primary">
+                            <i class="fas fa-save"></i> Guardar Configuración
+                        </button>
+                        <button onclick="testConnection()" class="btn-secondary">
+                            <i class="fas fa-check"></i> Probar Conexión
+                        </button>
+                    </div>
+                    <div class="config-note">
+                        <p><strong>Nota:</strong> Debido a limitaciones de CORS, es posible que necesites usar un servidor web local o configurar un proxy para acceder a Google Sheets desde el navegador.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para detalles de sede -->
+        <div id="sedeModal" class="modal">
+            <div class="modal-content">
+                <div id="sedeModalContent"></div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Cargando datos...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Scripts organizados por categoría -->
+    <!-- Core del sistema -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/etapas-config.js"></script>
+    <script src="js/utils/utils.js"></script>
+    
+    <!-- Parsers específicos por categoría -->
+    <script src="js/parsers/parser-alumnos-limpio.js"></script>
+    <script src="js/parsers/parser-sedes.js"></script>
+    <script src="js/parsers/parser-docentes.js"></script>
+    <script src="js/parsers/parser-grupos.js"></script>
+    <script src="js/parsers/parser-asistencias.js"></script>
+    
+    <!-- Utilidades (cargar antes de UI) -->
+    <script src="js/utils/filters.js"></script>
+    <script src="js/utils/asistencias-calculator.js"></script>
+    
+    <!-- Cargadores de datos -->
+    <script src="js/core/data-loader.js"></script>
+    <script src="js/core/data-loader-modular.js"></script>
+    
+    <!-- Interfaces de usuario -->
+    <script src="js/ui/ui-dashboard.js"></script>
+    <script src="js/ui/ui-alumnos.js"></script>
+    <script src="js/ui/ui-docentes.js"></script>
+    <script src="js/ui/ui-grupos.js"></script>
+    <script src="sedes-simple.js"></script>
+    
+    <!-- Utilidades de debug -->
+    <script src="js/utils/test-parsers.js"></script>
+    <script src="js/utils/debug-headers.js"></script>
+    
+    <!-- Inicialización -->
+    <script src="js/core/main.js"></script>
+    
+    <!-- Debug de asistencias -->
+    <script>
+        // Ejecutar debug después de que todo esté cargado
+        setTimeout(() => {
+            console.clear();
+            console.log('🔧 DEBUG AUTOMÁTICO DE ASISTENCIAS');
+            
+            // 1. Verificar funciones
+            console.log('1. Funciones disponibles:');
+            console.log('   calcularPorcentajeAsistencia:', typeof calcularPorcentajeAsistencia);
+            console.log('   obtenerClaseAsistencia:', typeof obtenerClaseAsistencia);
+            
+            // 2. Verificar datos
+            console.log('2. Datos disponibles:');
+            console.log('   asistenciasData:', window.asistenciasData ? window.asistenciasData.length + ' registros' : 'NO EXISTE');
+            console.log('   alumnosData:', window.alumnosData ? window.alumnosData.length + ' registros' : 'NO EXISTE');
+            
+            // 3. Test con primer alumno
+            if (window.alumnosData && window.alumnosData.length > 0 && typeof calcularPorcentajeAsistencia === 'function') {
+                const alumno = window.alumnosData[0];
+                console.log('3. Test con primer alumno:', alumno.nombre);
+                const resultado = calcularPorcentajeAsistencia(alumno);
+                console.log('   Resultado:', resultado);
+            }
+            
+            console.log('🔧 DEBUG COMPLETADO');
+        }, 3000);
+    </script>
+</body>
+</html>
