@@ -8,7 +8,22 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <!-- Pantalla de login -->
+    <div id="loginScreen" style="display:none; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg,#e0e7ff 0%,#f5f5f5 100%);">
+        <div style="background:white; padding:2.5rem 3.5rem; border-radius:18px; box-shadow:0 4px 32px #0002; text-align:center; min-width:320px;">
+            <div style="margin-bottom:1.5rem;">
+                <span style="display:inline-block; background:#6366f1; color:white; border-radius:50%; width:60px; height:60px; line-height:60px; font-size:2rem; box-shadow:0 2px 8px #6366f133;">
+                    <i class="fas fa-lock"></i>
+                </span>
+            </div>
+            <h2 style="color:#3730a3; margin-bottom:0.5rem;">Bienvenido</h2>
+            <p style="color:#555; margin-bottom:2rem;">Debes iniciar sesión con Google para acceder al sistema de gestión de clases de apoyo.</p>
+            <button id="loginBtnScreen" class="btn-auth" style="background:#4285F4; color:white; font-size:1.1rem; padding:0.7rem 2.2rem; border-radius:6px; border:none; box-shadow:0 2px 8px #4285f422; transition:background 0.2s; cursor:pointer;">
+                <i class="fab fa-google" style="margin-right:8px;"></i> Iniciar sesión con Google
+            </button>
+        </div>
+    </div>
+    <div class="container" id="mainApp" style="display:none;">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
@@ -36,6 +51,14 @@
                         <i class="fas fa-cog"></i> Configurar Google Sheets
                     </button>
                     <input type="text" id="globalSearch" placeholder="Buscar en todo el sistema..." class="global-search">
+        <!-- Botones de autenticación Firebase -->
+        <button id="loginBtn" class="btn-auth" style="display:none; background:#4285F4; color:white; font-size:1.05rem; padding:0.5rem 1.3rem; border-radius:6px; border:none; box-shadow:0 2px 8px #4285f422; transition:background 0.2s; cursor:pointer;">
+            <i class="fab fa-google" style="margin-right:7px;"></i> Iniciar sesión
+        </button>
+        <button id="logoutBtn" class="btn-auth" style="display:none; background:#ef4444; color:white; font-size:1.05rem; padding:0.5rem 1.3rem; border-radius:6px; border:none; box-shadow:0 2px 8px #ef444422; transition:background 0.2s; cursor:pointer;">
+            <i class="fas fa-sign-out-alt" style="margin-right:7px;"></i> Cerrar sesión
+        </button>
+        <span id="userInfo" style="margin-left:10px;"></span>
                 </div>
             </div>
         </header>
@@ -390,5 +413,92 @@
             console.log('🔧 DEBUG COMPLETADO');
         }, 3000);
     </script>
+</body>
+<!-- Firebase Auth y lógica de login -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+  // Configuración de tu proyecto Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDX0ednSxa59ieJuyVI7AircvjU7fG3Nsc",
+    authDomain: "pruebadelogin-f6aa3.firebaseapp.com",
+    projectId: "pruebadelogin-f6aa3",
+    storageBucket: "pruebadelogin-f6aa3.firebasestorage.app",
+    messagingSenderId: "253715277950",
+    appId: "1:253715277950:web:d31df25531fde4b787102f",
+    measurementId: "G-V239Y1NXG0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // Elementos
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userInfo = document.getElementById('userInfo');
+  const loginScreen = document.getElementById('loginScreen');
+  const mainApp = document.getElementById('mainApp');
+  const loginBtnScreen = document.getElementById('loginBtnScreen');
+
+  // Mostrar/ocultar según estado de autenticación
+  let allowedEmails = [];
+  // Importar la lista de correos permitidos desde archivo externo
+  import('./js/core/allowed-emails.js').then(module => {
+    allowedEmails = module.allowedEmails;
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (allowedEmails.includes(user.email)) {
+        // Usuario autorizado
+        if (mainApp) mainApp.style.display = '';
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        if (userInfo) userInfo.textContent = `Hola, ${user.displayName}`;
+      } else {
+        // Usuario autenticado pero NO autorizado
+        alert('Tu correo no tiene acceso a este sistema.');
+        signOut(auth);
+        if (mainApp) mainApp.style.display = 'none';
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userInfo) userInfo.textContent = '';
+      }
+    } else {
+      // No autenticado
+      if (mainApp) mainApp.style.display = 'none';
+      if (loginScreen) loginScreen.style.display = 'flex';
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (userInfo) userInfo.textContent = '';
+    }
+  });
+
+  // Login desde header
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      signInWithPopup(auth, provider).catch((error) => {
+        alert('Error al iniciar sesión: ' + error.message);
+      });
+    });
+  }
+  // Login desde pantalla de login
+  if (loginBtnScreen) {
+    loginBtnScreen.addEventListener('click', () => {
+      signInWithPopup(auth, provider).catch((error) => {
+        alert('Error al iniciar sesión: ' + error.message);
+      });
+    });
+  }
+  // Logout
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+  }
+</script>
 </body>
 </html>

@@ -2799,3 +2799,6 @@ body {
 .chart-card canvas {
     flex: 1;
     max-height: 320px !important; /* Altura máxima para
+    el canvas */
+    width: 100% !important;
+}
