@@ -442,39 +442,37 @@
   const loginBtnScreen = document.getElementById('loginBtnScreen');
 
   // Mostrar/ocultar según estado de autenticación
-  let allowedEmails = [];
-  // Importar la lista de correos permitidos desde archivo externo
+  // Importar la lista de correos permitidos desde archivo externo y luego inicializar la autenticación
   import('./js/core/allowed-emails.js').then(module => {
-    allowedEmails = module.allowedEmails;
-  });
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      if (allowedEmails.includes(user.email)) {
-        // Usuario autorizado
-        if (mainApp) mainApp.style.display = '';
-        if (loginScreen) loginScreen.style.display = 'none';
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'inline-block';
-        if (userInfo) userInfo.textContent = `Hola, ${user.displayName}`;
+    const allowedEmails = module.allowedEmails;
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (allowedEmails.includes(user.email)) {
+          // Usuario autorizado
+          if (mainApp) mainApp.style.display = '';
+          if (loginScreen) loginScreen.style.display = 'none';
+          if (loginBtn) loginBtn.style.display = 'none';
+          if (logoutBtn) logoutBtn.style.display = 'inline-block';
+          if (userInfo) userInfo.textContent = `Hola, ${user.displayName}`;
+        } else {
+          // Usuario autenticado pero NO autorizado
+          alert('Tu correo no tiene acceso a este sistema.');
+          signOut(auth);
+          if (mainApp) mainApp.style.display = 'none';
+          if (loginScreen) loginScreen.style.display = 'flex';
+          if (loginBtn) loginBtn.style.display = 'inline-block';
+          if (logoutBtn) logoutBtn.style.display = 'none';
+          if (userInfo) userInfo.textContent = '';
+        }
       } else {
-        // Usuario autenticado pero NO autorizado
-        alert('Tu correo no tiene acceso a este sistema.');
-        signOut(auth);
+        // No autenticado
         if (mainApp) mainApp.style.display = 'none';
         if (loginScreen) loginScreen.style.display = 'flex';
         if (loginBtn) loginBtn.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (userInfo) userInfo.textContent = '';
       }
-    } else {
-      // No autenticado
-      if (mainApp) mainApp.style.display = 'none';
-      if (loginScreen) loginScreen.style.display = 'flex';
-      if (loginBtn) loginBtn.style.display = 'inline-block';
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      if (userInfo) userInfo.textContent = '';
-    }
+    });
   });
 
   // Login desde header
